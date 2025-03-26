@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template contains resources for an S3 bucket, an RDS database, and a security group for RDS."
+
+Parameters:
+  pDBInstanceClass:
+    Type: String
+    Default: "db.t3.micro"
+    Description: "Database instance class"
+  
+  pDBName:
+    Type: String
+    Default: "DummyCFT"
+    Description: "The name of the database to create when the DB instance is created."
+  
+  DBUsername:
+    Type: String
+    Description: "The database admin account username."
+  
+  DBUserPassword:
+    Type: String
+    NoEcho: true
+    Description: "The database admin account password."
+
+  S3BucketName:
+    Type: String
+    Default: "demobucket-practice-demo-unique"
+    Description: "The name of the S3 bucket to create."
+
+Resources:
+  # Bucket creation
+  MyS3Bucket: 
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  # Security Group for RDS
+  MyRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group for RDS instance"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          CidrIp: "0.0.0.0/0"
+
+  # RDS Instance for MYSQL Engine  
+  MyRDSInstance: 
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      EngineVersion: "8.0.40"
+      DBInstanceClass: !Ref pDBInstanceClass
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBUserPassword
+      DBName: !Ref pDBName
+      AllocatedStorage: "20"
+      StorageType: gp2
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - Ref: MyRDSSecurityGroup

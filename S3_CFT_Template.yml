@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template contains resources for creating an S3 bucket, its policy, and uploading an object."
+
+Parameters:
+  pS3Bucket:
+    Type: String
+    Default: "demobucket-practice-dev1.example.com"
+    Description: "The name of the S3 bucket to create"
+
+Resources:
+  MyS3Bucket: #This resource is to create bucket in S3
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration: #I'm blocking the public policy as I'm not want it to be globally accessable
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+      BucketName: 
+        Ref: pS3Bucket
+      VersioningConfiguration:
+        Status: Enabled
+
+  MyBucketPolicy: #This resource is to create policy in existing bucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: 
+        Ref: MyS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:  #Here I will use only one IAM user to view thw list of Bucket
+          - Sid: "AllowOnlyOneUser"
+            Effect: "Allow"
+            Principal:
+              AWS: "arn_for_Iam_user"
+            Action: 's3:GetObject'
+            Resource: !Sub '${MyS3Bucket.Arn}/*'
+
