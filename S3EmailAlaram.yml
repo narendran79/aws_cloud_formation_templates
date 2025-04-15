@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CFT to create an S3 bucket and cloudwatch alarm for object count.
+
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: s3-alaram-for-object-count-dev
+      AccessControl: Private
+
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: S3Alaram
+      DisplayName: S3Alaram
+
+  S3ObjectCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm when the number of objects in the S3 bucket exceeds 5
+      MetricName: NumberOfObjects
+      Namespace: AWS/S3
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '5'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: BucketName
+          Value: !Ref MyS3Bucket
+        - Name: StorageType
+          Value: AllStorageTypes
+      AlarmActions:
+        - !Ref MySNSTopic
+      OKActions:
+        - !Ref MySNSTopic
+      InsufficientDataActions:
+        - !Ref MySNSTopic
+
+  MySNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref MySNSTopic
+      Protocol: email
+      Endpoint: royaldhoni27@gmail.com
