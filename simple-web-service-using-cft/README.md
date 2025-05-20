@@ -28,9 +28,9 @@ This template provides the basic infrastructure for a simple web service, allowi
 - **Security Group**: Configured to allow HTTP (port 80) traffic to the EC2 instance.
 
 ## Prerequisites
-- We have two option to deploy our CFT template
-  1. Using AWS Console UI - we require either free tier or root access account.
-  2. Using AWS CLI - we need to make sure CLI installed in our system and configured with aws account using access key.
+We have two option to deploy our CFT template
+ - Using AWS Console UI - we require either free tier or root access account.
+ - Using AWS CLI - we need to make sure CLI installed in our system and configured with aws account using access key.
 
 ## Parameters
 
@@ -48,17 +48,11 @@ The template accepts the following parameters that you can modify to customize t
 ### SnapShot:
 - **VPC**
   <img width="634" alt="vpc-cft" src="https://github.com/user-attachments/assets/42583109-c9eb-4f43-bc38-09fb03fae940" />
-
 - **Security Group**
   <img width="806" alt="sg-cft" src="https://github.com/user-attachments/assets/c7bd02c0-95e1-4d08-8293-73a33f52ef50" />
-
 - **EC2**
   <img width="818" alt="ec2-cft" src="https://github.com/user-attachments/assets/17493362-1e85-403a-b5fd-8bcb6c656b66" />
-
 - **RDS**
   <img width="792" alt="rds-cft" src="https://github.com/user-attachments/assets/50ea45ba-44b0-4ea2-be03-65730232a35c" />
-
 - **S3**
   <img width="798" alt="s3-cft" src="https://github.com/user-attachments/assets/6b87a618-288a-4f05-9b7c-1d60f5f7936e" />
-  
-
