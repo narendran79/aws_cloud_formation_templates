@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Deploying a simple web service using AWS EC2, VPC, S3, RDS, and Security Group
 
-#Default parameter is optional here
+#Default property is optional here
 Parameters:
   EnvironmentName:
     Description: An environment name that precedes resource names.
