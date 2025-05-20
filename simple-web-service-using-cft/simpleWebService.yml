@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploying a simple web service using AWS EC2, VPC, S3, RDS, and Security Group
+
+#Default parameter is optional here
+Parameters:
+  EnvironmentName:
+    Description: An environment name that precedes resource names.
+    Type: String
+    Default: using-cft-we-have ### you can define your fav name for instance,bucket, etc....
+
+  VpcCIDR:
+    Description: IP range for the VPC.
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnetCIDR:
+    Description: IP range for the public subnet.
+    Type: String
+    Default: 10.0.1.0/24
+
+  PrivateSubnetCIDR:
+    Description: IP range for the private subnet.
+    Type: String
+    Default: 10.0.2.0/24
+  
+  #RDS DB subnet group want to span at least two Availability Zones (AZs) for high availability...
+  PrivateSubnet2CIDR:
+    Description: IP range for the private subnet.
+    Type: String
+    Default: 10.0.3.0/24
+
+  AvailabilityZone:
+    Description: Availability Zone.
+    Type: String
+    Default: us-east-1a
+ 
+  # Second availability zone is required for load balancing 
+  SecondaryAvailabilityZone:
+    Description: Secondary AZ for high availability
+    Type: String
+    Default: us-east-1b
+
+#!Sub - Used when you need to embed values into strings like ARNs, names, paths, etc.
+#!Ref - Returns the value of a resource or parameter.
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCIDR
+      AvailabilityZone: !Ref AvailabilityZone
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCIDR
+      AvailabilityZone: !Ref AvailabilityZone
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Ref SecondaryAvailabilityZone
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: demo-security-group
+      GroupDescription: Security group for EC2 instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress: #you can modify the rule as per requirement
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-084568db4383264d4
+      KeyName: ansibleKey
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          SubnetId: !Ref PublicSubnet
+          GroupSet:
+            - !Ref SecurityGroup
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${EnvironmentName}-s3-dev"
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+
+  #You can include multiple properties for rds. 
+  #Ref: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-rds-dbinstance.html
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub "${EnvironmentName}-rds"
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro #included Burstable classes
+      Engine: mysql
+      EngineVersion: MySQL 8.0.41
+      DBName: your-db-name
+      MasterUsername: admin
+      MasterUserPassword: your-password
+      VPCSecurityGroups:
+        - !Ref SecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref PrivateSubnet
+        - !Ref PrivateSubnet2
+
+Outputs:
+  VPCId:
+    Description: 'Your VPC ID:'
+    Value: !Ref VPC
+
+  PublicSubnetId:
+    Description: 'Your Public Subnet ID: '
+    Value: !Ref PublicSubnet
+
+  PrivateSubnetId:
+    Description: 'Your Private Subnet ID: '
+    Value: !Ref PrivateSubnet
+
+  EC2InstanceId:
+    Description: 'Your EC2 Instance ID: '
+    Value: !Ref EC2Instance
+
+  S3BucketName:
+    Description: 'Your S3 Bucket name: '
+    Value: !Ref S3Bucket
+
+  RDSInstanceEndpoint:
+    Description: 'Your RDS Endpoint: '
+    Value: !GetAtt RDSInstance.Endpoint.Address
